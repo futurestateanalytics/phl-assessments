@@ -1,0 +1,6 @@
+# .dockerignore
+data/
+helpers/
+quarto/
+_quarto-output/
+www/

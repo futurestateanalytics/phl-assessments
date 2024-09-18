@@ -1,0 +1,9 @@
+/.quarto/
+_quarto-output/
+*.csv
+*.rds
+*.geojson
+*.parquet
+R-helpers/
+www/
+data/
