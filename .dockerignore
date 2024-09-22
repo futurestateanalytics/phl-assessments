@@ -4,3 +4,5 @@ helpers/
 quarto/
 _quarto-output/
 www/
+app/
+.Rproj.user
