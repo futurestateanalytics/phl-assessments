@@ -2,10 +2,18 @@ source("helpers.R")
 
 thematic::thematic_shiny()
 
+link_gh <- tags$a(
+  shiny::icon("github"), "View on GitHub",
+  href = "https://github.com/futurestateanalytics/phl-assessments",
+  target = "_blank",
+  align = "center"
+)
+
 ui <- page_sidebar(
   title = "Philly Property Assessment Explorer",
   theme = my_theme,
   sidebar = sidebar(
+    open = list(desktop = "open", mobile = "always-above"),
     shiny::h5("Start Here"),
     textInput(
       inputId = "address_input",
@@ -53,7 +61,8 @@ ui <- page_sidebar(
       "disclaimer",
       "Disclaimer"
     ),
-    HTML("<span align = 'center'> A side project by</br><a href='www.futurestateanalytics.io'>Future State Analytics</a></span>")
+    HTML("<span align = 'center'> A side project by</br><a href='https://www.futurestateanalytics.io'>Future State Analytics</a></span>"),
+    link_gh,
   ),
   layout_columns(
     col_widths = c(4, 4, 4, 12, 3),
