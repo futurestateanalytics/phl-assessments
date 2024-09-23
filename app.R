@@ -1,4 +1,4 @@
-source("helpers.R")
+source("helper-functions.R")
 
 thematic::thematic_shiny()
 
@@ -93,7 +93,7 @@ ui <- page_sidebar(
         "Assessment Comparison",
         tooltip(
           bs_icon("info-circle"),
-          "Compares the property assessment of the input propery (red) relative to the matches (blue)"
+          "Compares the property assessment of the input propery (red) relative to the matches (blue)."
         )
       ),
       plotly::plotlyOutput("assessment_compare_plot")
@@ -131,8 +131,12 @@ ui <- page_sidebar(
 )
 
 server <- function(input, output) {
+  # set up connection
+  # con <- dbConnect(duckdb::duckdb())
+  con <- pool::dbPool(duckdb::duckdb())
+
   observeEvent(input$goButton, {
-    address_result <- get_loc_names(input$address_input)
+    address_result <- get_loc_names(input$address_input, connection = poolCheckout(con))
     updateSelectizeInput(getDefaultReactiveDomain(), "address_select",
       label = "Step 2 - Confirm Address",
       choices = address_result %>% pull(location),
@@ -142,7 +146,7 @@ server <- function(input, output) {
 
   index_property <-
     eventReactive(input$get_matches, {
-      get_index_property(input$address_select) |>
+      get_index_property(input$address_select, connection = poolCheckout(con)) |>
         select_matching_params(params)
     })
 
@@ -159,7 +163,8 @@ server <- function(input, output) {
           paste0(
             c(index_property()$census_tract, matching_tracts()),
             collapse = ","
-          )
+          ),
+        connection = poolCheckout(con)
       )
     )
 
@@ -244,7 +249,7 @@ server <- function(input, output) {
 
   output$assessment_plot <-
     renderHighchart({
-      get_prop_asssessment(index_property()$parcel_number) %>%
+      get_prop_asssessment(index_property()$parcel_number, connection = poolCheckout(con)) %>%
         get_prop_assessment_plot(., location = input$address_select)
     })
 

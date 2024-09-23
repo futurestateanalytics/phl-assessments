@@ -18,6 +18,7 @@ library(randomForest)
 library(showtext)
 library(sysfonts)
 library(showtextdb)
+library(pool)
 
 
 my_theme <- bs_theme(
@@ -31,7 +32,9 @@ my_theme <- bs_theme(
 
 #* app functions
 get_loc_names <-
-  function(location) {
+  function(location, connection) {
+    on.exit(poolReturn(connection))
+
     # DuckDB can read files from folder
     prop_path <- here::here("res_prop.parquet")
 
@@ -49,8 +52,9 @@ get_loc_names <-
         ")
 
     # Run the query with DuckDB in memory
+
     res <- dbGetQuery(
-      conn = dbConnect(duckdb()),
+      conn = connection,
       statement = loc_query
     )
 
@@ -65,7 +69,10 @@ hc_pal <- c(
 )
 
 get_data_dict_table <-
-  function() {
+  function(connection) {
+    on.exit(poolReturn(connection))
+
+
     # DuckDB can read files from folder by using a glob pattern
     field_path <- here::here("fields.parquet")
 
@@ -80,17 +87,18 @@ get_data_dict_table <-
 
     # Run the query with DuckDB in memory
     res <- dbGetQuery(
-      conn = dbConnect(duckdb()),
+      conn = connection,
       statement = fields_query
     )
-
-
     return(res)
   }
 
 #* assessment functions ---------------------
 get_prop_asssessment <-
-  function(parcel) {
+  function(parcel, connection) {
+    on.exit(poolReturn(connection))
+
+
     # DuckDB can read files from folder
     assessment_path <- here::here("assessments.parquet")
 
@@ -109,10 +117,9 @@ get_prop_asssessment <-
 
     # Run the query with DuckDB in memory
     res <- dbGetQuery(
-      conn = dbConnect(duckdb()),
+      conn = connection,
       statement = assessment_query
     )
-
     return(res)
   }
 
@@ -146,7 +153,7 @@ get_prop_assessment_plot <-
       hc_tooltip(
         shared = F,
         headerFormat = "",
-        pointFormat = "{point.year}</br><b>Market value</b>: {point.dollar_value}"
+        pointFormat = "{point.year}</br><b>Assessed Value</b>: {point.dollar_value}"
       )
   }
 
@@ -231,7 +238,10 @@ params <- c(
 )
 
 get_index_property <-
-  function(location) {
+  function(location, connection) {
+    on.exit(poolReturn(connection))
+
+
     # DuckDB can read files from folder
     prop_path <- here::here("res_prop.parquet")
 
@@ -251,7 +261,7 @@ get_index_property <-
 
     # Run the query with DuckDB in memory
     res <- dbGetQuery(
-      conn = dbConnect(duckdb()),
+      conn = connection,
       statement = prop_query
     )
     return(res)
@@ -297,7 +307,10 @@ get_touching_tracts <-
   }
 
 get_match_universe <-
-  function(index_property, matching_tracts) {
+  function(index_property, matching_tracts, connection) {
+    on.exit(poolReturn(connection))
+
+
     # DuckDB can read files from folder
     prop_path <- here::here("res_prop.parquet")
 
@@ -317,7 +330,7 @@ get_match_universe <-
 
     # Run the query with DuckDB in memory
     res <- dbGetQuery(
-      conn = dbConnect(duckdb()),
+      conn = connection,
       statement = prop_query
     )
 
