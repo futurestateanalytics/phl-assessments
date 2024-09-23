@@ -3,8 +3,15 @@ source("helpers.R")
 thematic::thematic_shiny()
 
 link_gh <- tags$a(
-  shiny::icon("github"), "View on GitHub",
+  shiny::icon("github"), "view on GitHub",
   href = "https://github.com/futurestateanalytics/phl-assessments",
+  target = "_blank",
+  align = "center"
+)
+
+link_bmc <- tags$a(
+  shiny::icon("coffee"), "buy me a coffee",
+  href = "https://buymeacoffee.com/futurestateanalytics",
   target = "_blank",
   align = "center"
 )
@@ -63,6 +70,7 @@ ui <- page_sidebar(
     ),
     HTML("<span align = 'center'> A side project by</br><a href='https://www.futurestateanalytics.io'>Future State Analytics</a></span>"),
     link_gh,
+    link_bmc,
   ),
   layout_columns(
     col_widths = c(4, 4, 4, 12, 3),
