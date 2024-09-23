@@ -9,6 +9,13 @@ link_gh <- tags$a(
   align = "center"
 )
 
+link_bmc <- tags$a(
+  shiny::icon("coffee"), "buy me a coffee",
+  href = "https://buymeacoffee.com/futurestateanalytics",
+  target = "_blank",
+  align = "center"
+)
+
 ui <- page_sidebar(
   title = "Philly Property Assessment Explorer",
   theme = my_theme,
@@ -63,6 +70,7 @@ ui <- page_sidebar(
     ),
     HTML("<span align = 'center'> A side project by</br><a href='https://www.futurestateanalytics.io'>Future State Analytics</a></span>"),
     link_gh,
+    link_bmc,
   ),
   layout_columns(
     col_widths = c(4, 4, 4, 12, 3),
