@@ -136,6 +136,16 @@ server <- function(input, output) {
 
   observeEvent(input$goButton, {
     address_result <- get_loc_names(input$address_input, connection = poolCheckout(con))
+    if (nrow(address_result) < 1) {
+      showModal(
+        modalDialog(
+          tags$p("No address matches found - please enter address again."),
+          tags$p("If problem persists, try just entering your street name (e.g. 's 15h st' or 'palmer st') and choose your specific address in the drop down menu in Step 2"),
+          easyClose = TRUE,
+          footer = NULL
+        )
+      )
+    }
     updateSelectizeInput(getDefaultReactiveDomain(), "address_select",
       label = "Step 2 - Confirm Address",
       choices = address_result %>% pull(location),
