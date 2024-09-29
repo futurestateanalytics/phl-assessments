@@ -34,6 +34,7 @@ my_theme <- bs_theme(
 get_loc_names <-
   function(location, connection) {
     on.exit(poolReturn(connection))
+    on.exit(dbDisconnect(connection))
 
     # DuckDB can read files from folder
     prop_path <- here::here("res_prop.parquet")
@@ -71,7 +72,7 @@ hc_pal <- c(
 get_data_dict_table <-
   function(connection) {
     on.exit(poolReturn(connection))
-
+    on.exit(dbDisconnect(connection))
 
     # DuckDB can read files from folder by using a glob pattern
     field_path <- here::here("fields.parquet")
@@ -97,7 +98,7 @@ get_data_dict_table <-
 get_prop_asssessment <-
   function(parcel, connection) {
     on.exit(poolReturn(connection))
-
+    on.exit(dbDisconnect(connection))
 
     # DuckDB can read files from folder
     assessment_path <- here::here("assessments.parquet")
@@ -240,7 +241,7 @@ params <- c(
 get_index_property <-
   function(location, connection) {
     on.exit(poolReturn(connection))
-
+    on.exit(dbDisconnect(connection))
 
     # DuckDB can read files from folder
     prop_path <- here::here("res_prop.parquet")
@@ -309,7 +310,7 @@ get_touching_tracts <-
 get_match_universe <-
   function(index_property, matching_tracts, connection) {
     on.exit(poolReturn(connection))
-
+    on.exit(dbDisconnect(connection))
 
     # DuckDB can read files from folder
     prop_path <- here::here("res_prop.parquet")

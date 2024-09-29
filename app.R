@@ -132,7 +132,6 @@ ui <- page_sidebar(
 
 server <- function(input, output) {
   # set up connection
-  # con <- dbConnect(duckdb::duckdb())
   con <- pool::dbPool(duckdb::duckdb())
 
   observeEvent(input$goButton, {
@@ -267,6 +266,7 @@ server <- function(input, output) {
         tags$p("The app can save you time by finding up to 25 comps automatically using a matching algorithm, and returns some relevant information."),
         tags$p("You can review the characteristics of the matched properties and how their assessments compare to yours.
           If you choose to appeal, the matched properties, if appropriate, can be used as comparisons."),
+        tags$p("The following OPA categories are included: 'residential', 'multi family', 'apartments > 4 units'"),
         easyClose = TRUE,
         footer = NULL
       )
