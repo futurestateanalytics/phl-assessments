@@ -1,3 +1,3 @@
 # phl assessments app
 
-https://futurestateanalytics.shinyapps.io/phl-assessments/
+https://phl-comps.futurestateanalytics.io/
