@@ -222,6 +222,7 @@ get_assessment_compare_plotly <-
 params <- c(
   "parcel_number",
   "location",
+  "category_code",
   "market_value",
   "census_tract",
   "lattitude",
@@ -354,11 +355,12 @@ find_matching_properties <-
     prop_match <-
       matchit(
         match_ind ~ exterior_condition + interior_condition + number_of_bedrooms +
-          number_stories + quality_grade + total_area + total_livable_area + view_type + year_built,
+          number_stories + quality_grade + total_area + total_livable_area + view_type + year_built + category_code,
         # lattitude + longitude,
         data = property_prep,
         method = "nearest",
         distance = "randomforest",
+        exact = "category_code",
         antiexact = "parcel_number",
         ratio = n_matches,
         replace = FALSE
@@ -370,7 +372,7 @@ find_matching_properties <-
         subclass = as.numeric(as.character(subclass)),
         type = ifelse(match_ind == 0, "Match", "Input")
       ) |>
-      left_join(index_property |> select(parcel_number, location, market_value, lattitude, longitude)) |>
+      left_join(index_property |> select(parcel_number, category_code, location, market_value, lattitude, longitude)) |>
       arrange(
         desc(match_ind),
         distance
