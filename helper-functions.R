@@ -313,6 +313,11 @@ get_match_universe <-
     on.exit(poolReturn(connection))
     on.exit(dbDisconnect(connection))
 
+    index_property_category_code <-
+      index_property %>%
+      select(category_code) %>%
+      pull(category_code)
+
     # DuckDB can read files from folder
     prop_path <- here::here("res_prop.parquet")
 
@@ -324,8 +329,10 @@ get_match_universe <-
       from
         read_parquet('${prop_path}')
       where
+        -- sometimes a property is associated with > 1 parcel number, so only return one (see 2616 S 18TH ST as example)
         census_tract in (${matching_tracts})
-      -- sometimes a property is associated with > 1 parcel number, so only return one (see 2616 S 18TH ST as example)
+        -- restrict potential matches to same property type
+        and category_code = (${index_property_category_code})
       qualify
         parcel_number = min(parcel_number) over(partition by location order by location)
       ")
