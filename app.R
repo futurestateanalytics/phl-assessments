@@ -16,6 +16,15 @@ link_bmc <- tags$a(
   align = "center"
 )
 
+# Create the pool connection on app initialization (outside of the server function)
+con <- pool::dbPool(duckdb::duckdb())
+
+# Initialize and install extensions
+install_duck_ext(poolCheckout(con)) # Install and load the httpfs extension only once
+
+# # # Return the connection back to the pool
+# poolReturn(con)
+
 ui <- page_sidebar(
   title = "Philly Property Assessment Explorer",
   theme = my_theme,
@@ -28,9 +37,10 @@ ui <- page_sidebar(
       value = "",
       placeholder = "ex: 123 Market St"
     ),
-    shiny::actionButton(
+    bslib::input_task_button(
       "goButton",
-      "Lookup Address"
+      "Lookup Address",
+      type = "info"
     ),
     selectInput(
       inputId = "address_select",
@@ -131,11 +141,17 @@ ui <- page_sidebar(
 )
 
 server <- function(input, output) {
-  # set up connection
-  con <- pool::dbPool(duckdb::duckdb())
+  # Use pool::poolCheckout() to grab a connection from the pool
+  connection <- pool::poolCheckout(con)
 
   observeEvent(input$goButton, {
-    address_result <- get_loc_names(input$address_input, connection = poolCheckout(con))
+    address_result <-
+      if (input$address_input == "") {
+        get_loc_names("123 fake st", connection = pool::poolCheckout(con))
+      } else {
+        get_loc_names(input$address_input, connection = pool::poolCheckout(con))
+      }
+
     if (nrow(address_result) < 1) {
       showModal(
         modalDialog(
@@ -155,7 +171,7 @@ server <- function(input, output) {
 
   index_property <-
     eventReactive(input$get_matches, {
-      get_index_property(input$address_select, connection = poolCheckout(con)) |>
+      get_index_property(input$address_select, connection = pool::poolCheckout(con)) |>
         select_matching_params(params)
     })
 
@@ -173,7 +189,7 @@ server <- function(input, output) {
             c(index_property()$census_tract, matching_tracts()),
             collapse = ","
           ),
-        connection = poolCheckout(con)
+        connection = pool::poolCheckout(con)
       )
     )
 

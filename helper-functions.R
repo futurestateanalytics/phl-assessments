@@ -3,8 +3,6 @@ library(MatchIt)
 library(highcharter)
 library(reactable)
 library(leaflet)
-library(arrow)
-library(sfarrow)
 library(duckdb)
 library(bslib)
 library(bsicons)
@@ -24,20 +22,30 @@ library(pool)
 my_theme <- bs_theme(
   bg = "#fbf7f5",
   fg = "#404248",
-  primary = "#4e9a62",
+  primary = "#3b7f4d",
+  info = "rgb(178, 191, 201)",
   font_scale = 0.9,
   base_font = font_google("Space Mono"),
-  code_font = font_google("Space Mono")
+  code_font = font_google("Space Mono"),
+  quiet = TRUE
 )
+
+install_duck_ext <-
+  function(connection) {
+    on.exit(poolReturn(connection))
+
+    # Install and load the DuckDB extension
+    DBI::dbExecute(connection, "INSTALL httpfs;")
+    DBI::dbExecute(connection, "LOAD httpfs;")
+  }
 
 #* app functions
 get_loc_names <-
   function(location, connection) {
-    on.exit(poolReturn(connection))
-    on.exit(dbDisconnect(connection))
+    on.exit(pool::poolReturn(connection))
 
     # DuckDB can read files from folder
-    prop_path <- here::here("res_prop.parquet")
+    prop_path <- "https://phl-assessments.nyc3.digitaloceanspaces.com/res_prop.parquet"
 
     # SQL statement to perform data aggregation
     # String interpolation is used to inject dynamic string parts into the query
@@ -72,7 +80,6 @@ hc_pal <- c(
 get_data_dict_table <-
   function(connection) {
     on.exit(poolReturn(connection))
-    on.exit(dbDisconnect(connection))
 
     # DuckDB can read files from folder by using a glob pattern
     field_path <- here::here("fields.parquet")
@@ -98,10 +105,9 @@ get_data_dict_table <-
 get_prop_asssessment <-
   function(parcel, connection) {
     on.exit(poolReturn(connection))
-    on.exit(dbDisconnect(connection))
 
     # DuckDB can read files from folder
-    assessment_path <- here::here("assessments.parquet")
+    assessment_path <- "https://phl-assessments.nyc3.digitaloceanspaces.com/assessments.parquet"
 
     # SQL statement to perform data aggregation
     # String interpolation is used to inject dynamic string parts into the query
@@ -242,10 +248,9 @@ params <- c(
 get_index_property <-
   function(location, connection) {
     on.exit(poolReturn(connection))
-    on.exit(dbDisconnect(connection))
 
     # DuckDB can read files from folder
-    prop_path <- here::here("res_prop.parquet")
+    prop_path <- "https://phl-assessments.nyc3.digitaloceanspaces.com/res_prop.parquet"
 
     # SQL statement to perform data aggregation
     # String interpolation is used to inject dynamic string parts into the query
@@ -271,7 +276,8 @@ get_index_property <-
 
 get_phl_tracts <-
   function() {
-    sfarrow::st_read_parquet("phl_tracts.parquet")
+    # sfarrow::st_read_parquet("phl_tracts.parquet")
+    sfarrow::st_read_parquet("https://phl-assessments.nyc3.digitaloceanspaces.com/phl_tracts.parquet")
   }
 
 select_matching_params <-
@@ -311,7 +317,6 @@ get_touching_tracts <-
 get_match_universe <-
   function(index_property, matching_tracts, connection) {
     on.exit(poolReturn(connection))
-    on.exit(dbDisconnect(connection))
 
     index_property_category_code <-
       index_property %>%
@@ -319,7 +324,7 @@ get_match_universe <-
       pull(category_code)
 
     # DuckDB can read files from folder
-    prop_path <- here::here("res_prop.parquet")
+    prop_path <- "https://phl-assessments.nyc3.digitaloceanspaces.com/res_prop.parquet"
 
     # SQL statement to perform data aggregation
     # String interpolation is used to inject dynamic string parts into the query
