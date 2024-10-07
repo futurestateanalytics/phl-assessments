@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y \
     libfontconfig1-dev \
     libharfbuzz-dev \
     libfribidi-dev \
-    libudunits2-dev \
+    # libudunits2-dev \
     && apt-get clean
 
 RUN R -e "install.packages('renv')"

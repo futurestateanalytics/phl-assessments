@@ -73,3 +73,46 @@ phl_tracts <- tigris::tracts("PA", year = 2022, county = "Philadelphia")
 
 # save data
 sfarrow::st_write_parquet(phl_tracts, "data/phl_tracts.parquet")
+
+#* pre-calculate all adjacent tracts
+
+source("helper-functions.R")
+res_prop <- arrow::read_parquet("res_prop.parquet")
+phl_tracts <- sfarrow::st_read_parquet("phl_tracts.parquet")
+
+all_tracts <-
+  sort(unique(res_prop$census_tract))
+
+get_all_touching_tracts <-
+  function(tract, all_tracts) {
+    index_tract <-
+      all_tracts |>
+      filter(NAME %in% c(
+        tract,
+        # allow for mismatched tracts
+        tract + 0.01,
+        tract + 0.02
+      ))
+
+    intersect_test <-
+      bind_cols(
+        sf::st_touches(x = all_tracts$geometry, y = index_tract$geometry, sparse = FALSE) |>
+          as_tibble() |>
+          rename(adjacent_tracts = 1),
+        all_tracts
+      )
+
+    touching_tracts <-
+      intersect_test |>
+      filter(adjacent_tracts == TRUE) %>%
+      mutate(input_tract = tract) %>%
+      select(input_tract, adjacent_tract = NAME)
+    # pull(NAME)
+
+    return(touching_tracts)
+  }
+
+touching_tracts <-
+  purrr::map_dfr(all_tracts[1:315], ~ get_all_touching_tracts(tract = .x, all_tracts = phl_tracts))
+
+write_parquet(touching_tracts, "touching_tracts.parquet")

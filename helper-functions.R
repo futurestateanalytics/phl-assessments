@@ -30,14 +30,14 @@ my_theme <- bs_theme(
   quiet = TRUE
 )
 
-install_duck_ext <-
-  function(connection) {
-    on.exit(poolReturn(connection))
+# install_duck_ext <-
+#   function(connection) {
+#     on.exit(poolReturn(connection))
 
-    # Install and load the DuckDB extension
-    DBI::dbExecute(connection, "INSTALL httpfs;")
-    DBI::dbExecute(connection, "LOAD httpfs;")
-  }
+#     # Install and load the DuckDB extension
+#     DBI::dbExecute(connection, "INSTALL httpfs;")
+#     DBI::dbExecute(connection, "LOAD httpfs;")
+#   }
 
 #* app functions
 get_loc_names <-
@@ -45,13 +45,14 @@ get_loc_names <-
     on.exit(pool::poolReturn(connection))
 
     # DuckDB can read files from folder
-    prop_path <- "https://phl-assessments.nyc3.digitaloceanspaces.com/res_prop.parquet"
+    # prop_path <- "https://phl-assessments.nyc3.digitaloceanspaces.com/res_prop.parquet"
+    prop_path <- "res_prop.parquet"
 
     # SQL statement to perform data aggregation
     # String interpolation is used to inject dynamic string parts into the query
     loc_query <- str_interp("
-      select distinct
-        location
+      select
+        *
       from
         read_parquet('${prop_path}')
       where
@@ -107,7 +108,8 @@ get_prop_asssessment <-
     on.exit(poolReturn(connection))
 
     # DuckDB can read files from folder
-    assessment_path <- "https://phl-assessments.nyc3.digitaloceanspaces.com/assessments.parquet"
+    # assessment_path <- "https://phl-assessments.nyc3.digitaloceanspaces.com/assessments.parquet"
+    assessment_path <- "assessments.parquet"
 
     # SQL statement to perform data aggregation
     # String interpolation is used to inject dynamic string parts into the query
@@ -246,38 +248,36 @@ params <- c(
 )
 
 get_index_property <-
-  function(location, connection) {
-    on.exit(poolReturn(connection))
+  function(data, selected_address) {
+    data %>%
+      filter(location == selected_address)
 
-    # DuckDB can read files from folder
-    prop_path <- "https://phl-assessments.nyc3.digitaloceanspaces.com/res_prop.parquet"
+    #   on.exit(poolReturn(connection))
 
-    # SQL statement to perform data aggregation
-    # String interpolation is used to inject dynamic string parts into the query
-    prop_query <- str_interp("
-      select
-        *
-      from
-        read_parquet('${prop_path}')
-      where
-        location = '${location}'
-      -- sometimes a property is associated with > 1 parcel number, so only return one (see 2616 S 18TH ST as example)
-      qualify
-        parcel_number = min(parcel_number) over(partition by location order by location)
-        ")
+    #   # DuckDB can read files from folder
+    #   # prop_path <- "https://phl-assessments.nyc3.digitaloceanspaces.com/res_prop.parquet"
+    #   prop_path <- arrow::read_parquet("res_prop.parquet")
 
-    # Run the query with DuckDB in memory
-    res <- dbGetQuery(
-      conn = connection,
-      statement = prop_query
-    )
-    return(res)
-  }
+    #   # SQL statement to perform data aggregation
+    #   # String interpolation is used to inject dynamic string parts into the query
+    #   prop_query <- str_interp("
+    #     select
+    #       *
+    #     from
+    #       read_parquet('${prop_path}')
+    #     where
+    #       location = '${location}'
+    #     -- sometimes a property is associated with > 1 parcel number, so only return one (see 2616 S 18TH ST as example)
+    #     qualify
+    #       parcel_number = min(parcel_number) over(partition by location order by location)
+    #       ")
 
-get_phl_tracts <-
-  function() {
-    # sfarrow::st_read_parquet("phl_tracts.parquet")
-    sfarrow::st_read_parquet("https://phl-assessments.nyc3.digitaloceanspaces.com/phl_tracts.parquet")
+    #   # Run the query with DuckDB in memory
+    #   res <- dbGetQuery(
+    #     conn = connection,
+    #     statement = prop_query
+    #   )
+    #   return(res)
   }
 
 select_matching_params <-
@@ -287,31 +287,45 @@ select_matching_params <-
       as_tibble()
   }
 
-get_touching_tracts <-
-  function(index_property, all_tracts) {
-    index_tract <-
-      all_tracts |>
-      filter(NAME %in% c(
-        index_property$census_tract,
-        # allow for mismatched tracts
-        index_property$census_tract + 0.01,
-        index_property$census_tract + 0.02
-      ))
+# get_touching_tracts <-
+#   function(index_property, all_tracts) {
+#     index_tract <-
+#       all_tracts |>
+#       filter(NAME %in% c(
+#         index_property$census_tract,
+#         # allow for mismatched tracts
+#         index_property$census_tract + 0.01,
+#         index_property$census_tract + 0.02
+#       ))
 
-    intersect_test <-
-      bind_cols(
-        sf::st_touches(x = all_tracts$geometry, y = index_tract$geometry, sparse = FALSE) |>
-          as_tibble() |>
-          rename(adjacent_tracts = 1),
-        all_tracts
-      )
+#     intersect_test <-
+#       bind_cols(
+#         sf::st_touches(x = all_tracts$geometry, y = index_tract$geometry, sparse = FALSE) |>
+#           as_tibble() |>
+#           rename(adjacent_tracts = 1),
+#         all_tracts
+#       )
 
-    touching_tracts <-
-      intersect_test |>
-      filter(adjacent_tracts == TRUE) |>
-      pull(NAME)
+#     touching_tracts <-
+#       intersect_test |>
+#       filter(adjacent_tracts == TRUE) |>
+#       pull(NAME)
 
-    return(touching_tracts)
+#     return(touching_tracts)
+#   }
+
+load_touching_tracts <-
+  function() {
+    arrow::read_parquet("touching_tracts.parquet")
+    # sfarrow::st_read_parquet("https://phl-assessments.nyc3.digitaloceanspaces.com/phl_tracts.parquet")
+  }
+
+get_matching_tracts <-
+  function(index_property, data) {
+    data %>%
+      filter(input_tract == index_property$census_tract) %>%
+      select(adjacent_tract) %>%
+      pull(.)
   }
 
 get_match_universe <-
@@ -324,7 +338,8 @@ get_match_universe <-
       pull(category_code)
 
     # DuckDB can read files from folder
-    prop_path <- "https://phl-assessments.nyc3.digitaloceanspaces.com/res_prop.parquet"
+    # prop_path <- "https://phl-assessments.nyc3.digitaloceanspaces.com/res_prop.parquet"
+    prop_path <- "res_prop.parquet"
 
     # SQL statement to perform data aggregation
     # String interpolation is used to inject dynamic string parts into the query

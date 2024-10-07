@@ -6,4 +6,5 @@ _quarto-output/
 www/
 app/
 .Rproj.user
-*.parquet
+fields.parquet
+phl_tracts.parquet

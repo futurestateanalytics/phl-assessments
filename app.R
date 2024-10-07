@@ -19,11 +19,8 @@ link_bmc <- tags$a(
 # Create the pool connection on app initialization (outside of the server function)
 con <- pool::dbPool(duckdb::duckdb())
 
-# Initialize and install extensions
-install_duck_ext(poolCheckout(con)) # Install and load the httpfs extension only once
-
-# # # Return the connection back to the pool
-# poolReturn(con)
+# Initialize and install extensions - only needed if reading in files from object storage
+# install_duck_ext(poolCheckout(con)) # Install and load the httpfs extension only once
 
 ui <- page_sidebar(
   title = "Philly Property Assessment Explorer",
@@ -141,18 +138,20 @@ ui <- page_sidebar(
 )
 
 server <- function(input, output) {
-  # Use pool::poolCheckout() to grab a connection from the pool
-  connection <- pool::poolCheckout(con)
+  # Create a reactiveVal to store the address result
+  address_result <- reactiveVal()
 
   observeEvent(input$goButton, {
-    address_result <-
+    result <-
       if (input$address_input == "") {
+        # insert fake address to return 0 results and trigger modal
         get_loc_names("123 fake st", connection = pool::poolCheckout(con))
       } else {
+        # find similar addresses
         get_loc_names(input$address_input, connection = pool::poolCheckout(con))
       }
 
-    if (nrow(address_result) < 1) {
+    if (nrow(result) < 1) {
       showModal(
         modalDialog(
           tags$p("No address matches found - please enter address again."),
@@ -162,22 +161,31 @@ server <- function(input, output) {
         )
       )
     }
+
+    # Update the reactiveVal with the result so that it becomes accessible outside observeEvent.
+    address_result(result)
+
     updateSelectizeInput(getDefaultReactiveDomain(), "address_select",
       label = "Step 2 - Confirm Address",
-      choices = address_result %>% pull(location),
-      selected = head(address_result, 1)
+      choices = result %>% select(location) %>% pull(location),
+      selected = head(result$location, 1)
     )
   })
 
   index_property <-
     eventReactive(input$get_matches, {
-      get_index_property(input$address_select, connection = pool::poolCheckout(con)) |>
+      # Use the reactiveVal's stored result
+      result <- address_result()
+
+      get_index_property(data = result, selected_address = input$address_select) %>%
         select_matching_params(params)
     })
 
+  all_tract_matches <- load_touching_tracts()
+
   matching_tracts <-
     reactive(
-      get_touching_tracts(index_property(), get_phl_tracts())
+      get_matching_tracts(index_property(), all_tract_matches)
     )
 
   match_universe <-
